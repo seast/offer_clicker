@@ -1,18 +1,15 @@
 {
   "manifest_version": 3,
-  "name": "Click Automation Extension",
+  "name": "auto clicker",
   "version": "1.0",
-  "description": "Automates button clicks for specified domains with a progress overlay.",
-  "permissions": ["activeTab"],
+  "permissions": ["scripting", "activeTab"],
+  "action": {
+    "default_popup": "popup.html"
+  },
   "content_scripts": [
     {
-      "matches": [
-        "*://*.bankofamerica.com/*",
-        "*://*.americanexpress.com/*",
-        "*://*.chase.com/*"
-      ],
-      "js": ["content.js"],
-      "run_at": "document_end"
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
     }
   ]
 }

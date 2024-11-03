@@ -1,96 +1,87 @@
-// Function to create, update, and remove a progress overlay
-const createProgressOverlay = () => {
-  const overlay = document.createElement('div');
-  overlay.style.position = 'fixed';
-  overlay.style.top = '10px';
-  overlay.style.right = '10px';
-  overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-  overlay.style.color = '#fff';
-  overlay.style.padding = '10px';
-  overlay.style.borderRadius = '5px';
-  overlay.style.zIndex = '10000';
-  document.body.appendChild(overlay);
+// Function to create and update a progress message overlay on the webpage
+function showProgressMessage(message) {
+  let overlay = document.getElementById('progressOverlay');
 
-  return {
-    update: (text) => {
-      overlay.textContent = text;
-    },
-    remove: () => {
-      document.body.removeChild(overlay);
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'progressOverlay';
+    overlay.style.position = 'fixed';
+    overlay.style.top = '20px';
+    overlay.style.right = '20px';
+    overlay.style.padding = '10px';
+    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+    overlay.style.color = '#fff';
+    overlay.style.borderRadius = '5px';
+    overlay.style.zIndex = '10000';
+    document.body.appendChild(overlay);
+  }
+
+  overlay.textContent = message;
+}
+
+// Function to remove the progress message overlay
+function removeProgressMessage() {
+  const overlay = document.getElementById('progressOverlay');
+  if (overlay) {
+    document.body.removeChild(overlay);
+  }
+}
+
+// Function to check if the current URL matches "americanexpress.com" and scan for elements
+function scanAndSaveElements(selector, domain) {
+  // Check if the current page's URL matches the specified domain
+  if (window.location.hostname.includes(domain)) {
+    console.log(`Current URL matches ${domain}. Scanning for elements...`);
+
+    // Find all elements matching the provided selector
+    const elements = document.querySelectorAll(selector);
+
+    if (elements.length > 0) {
+      console.log(`Found ${elements.length} elements with selector "${selector}".`);
+      elements.forEach((element, index) => {
+        console.log(`Element ${index + 1}:`, element);
+      });
+      console.log('All elements have been saved and printed to the console.');
+      return Array.from(elements); // Return the elements as an array
+    } else {
+      console.log(`No elements found with selector "${selector}".`);
     }
-  };
-};
+  } else {
+    console.log(`Current URL does not match ${domain}. No scan performed.`);
+  }
+  return []; // Return an empty array if no elements are found
+}
 
-// Function to perform clicks with a delay and show progress
-const clickWithDelay = (elements, delay, overlay) => {
+function clickElements(elements, delay = 100) {
+  const totalElements = elements.length;
+  if (totalElements === 0) {
+    showProgressMessage(`can not find any items`);
+    setTimeout(removeProgressMessage, 5000); // Delay before removing
+    return;
+  }
+
   elements.forEach((element, index) => {
     setTimeout(() => {
-      element.click();
-      overlay.update(`Clicked element ${index + 1} of ${elements.length}`);
-      
-      // Remove overlay after the last element click
-      if (index === elements.length - 1) {
-        setTimeout(() => {
-          overlay.remove();
-        }, 1000);
+      if (element) {
+        element.click();
+        showProgressMessage(`Clicked element ${index + 1} of ${totalElements}`);
+        console.log(`Clicked element ${index + 1}:`, element);
       }
-    }, index * delay);
+
+      // Remove progress message after the last click
+      if (index === totalElements - 1) {
+        setTimeout(removeProgressMessage, 5000); // Delay before removing
+      }
+    }, delay); // Increment delay for each element
   });
-};
+}
 
-// Configuration for handling domain-specific logic
-const domainActions = {
-  'chase.com': () => {
-    const buttons = [];
-    document.querySelectorAll('div._1cwzc3r3').forEach((parentElement) => {
-      parentElement.querySelectorAll('[role="button"]').forEach((buttonElement) => {
-        buttons.push(buttonElement);
-      });
-    });
+// Listen for messages from the background script or popup
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'scanElements') {
+    const elements = scanAndSaveElements('button[title="Add to Card"]', 'americanexpress.com');
 
-    if (buttons.length === 0) {
-      alert('No buttons found for chase.com.');
-      return;
-    }
-
-    const progressOverlay = createProgressOverlay();
-    clickWithDelay(buttons, 100, progressOverlay);
-  },
-  'bankofamerica.com': () => {
-    const deals = document.querySelectorAll('a.add-deal.load-available-deal');
-
-    if (deals.length === 0) {
-      alert('No deals found for bankofamerica.com.');
-      return;
-    }
-
-    const progressOverlay = createProgressOverlay();
-    clickWithDelay(deals, 100, progressOverlay);
-  },
-  'americanexpress.com': () => {
-    const buttons = document.querySelectorAll('button[title="Add to Card"]');
-
-    if (buttons.length === 0) {
-      alert('No buttons found for americanexpress.com.');
-      return;
-    }
-
-    const progressOverlay = createProgressOverlay();
-    clickWithDelay(buttons, 100, progressOverlay);
+    clickElements(elements, 200);
   }
-};
-
-// Function to execute logic based on the current hostname
-const executeDomainLogic = () => {
-  const hostname = window.location.hostname;
-
-  for (const domain in domainActions) {
-    if (hostname.endsWith(domain)) {
-      domainActions[domain]();
-      break; // Exit the loop after the matching domain's logic is executed
-    }
-  }
-};
-
-// Run the appropriate logic for the current domain
-executeDomainLogic();
+  return true; // Keep the messaging channel open for async responses if needed
+});
