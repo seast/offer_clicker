@@ -27,29 +27,47 @@ function removeProgressMessage() {
   }
 }
 
-// Function to check if the current URL matches "americanexpress.com" and scan for elements
-function scanAndSaveElements(selector, domain) {
-  // Check if the current page's URL matches the specified domain
-  if (window.location.hostname.includes(domain)) {
-    console.log(`Current URL matches ${domain}. Scanning for elements...`);
+function getCurrentDomain() {
+  const hostname = window.location.hostname; // Get the full hostname
+  const domainParts = hostname.split('.'); // Split the hostname into parts
+  const domain = domainParts.slice(-2).join('.'); // Join the last two parts
+  return domain; // Return the last two parts as the domain (e.g., 'chase.com')
+}
+// Function to scan and save elements based on the domain
+function scanAndSaveElements() {
+  const domain = getCurrentDomain();
+  const buttons = []; // Array to hold found buttons
 
-    // Find all elements matching the provided selector
-    const elements = document.querySelectorAll(selector);
-
-    if (elements.length > 0) {
-      console.log(`Found ${elements.length} elements with selector "${selector}".`);
-      elements.forEach((element, index) => {
-        console.log(`Element ${index + 1}:`, element);
-      });
-      console.log('All elements have been saved and printed to the console.');
-      return Array.from(elements); // Return the elements as an array
-    } else {
-      console.log(`No elements found with selector "${selector}".`);
-    }
-  } else {
-    console.log(`Current URL does not match ${domain}. No scan performed.`);
+  // Use a specific scanning method based on the domain
+  if (domain === 'americanexpress.com') {
+    scanAmericanExpressElements(buttons);
+  } else if (domain === 'chase.com') {
+    scanChaseElements(buttons);
   }
-  return []; // Return an empty array if no elements are found
+
+  return buttons; // Return the array of found buttons
+}
+
+// Helper function to scan elements for americanexpress.com
+function scanAmericanExpressElements(buttons) {
+  const elements = document.querySelectorAll('button[title="Add to Card"]');
+  if (elements.length > 0) {
+    elements.forEach((element, index) => {
+      buttons.push(element); // Add element to buttons array
+    });
+  }
+}
+
+
+// Helper function to scan elements for chase.com
+function scanChaseElements(buttons) {
+  const parentElements = document.querySelectorAll('div._1cwzc3r3');
+  parentElements.forEach((parentElement) => {
+    const buttonElements = parentElement.querySelectorAll('[role="button"]');
+    buttonElements.forEach((buttonElement) => {
+      buttons.push(buttonElement); // Add button element to buttons array
+    });
+  });
 }
 
 function clickElements(elements, delay = 100) {
@@ -72,14 +90,14 @@ function clickElements(elements, delay = 100) {
       if (index === totalElements - 1) {
         setTimeout(removeProgressMessage, 5000); // Delay before removing
       }
-    }, delay); // Increment delay for each element
+    }, index * delay); // Increment delay for each element
   });
 }
 
 // Listen for messages from the background script or popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'scanElements') {
-    const elements = scanAndSaveElements('button[title="Add to Card"]', 'americanexpress.com');
+    const elements = scanAndSaveElements();
 
     clickElements(elements, 200);
   }
