@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Click Automation Extension",
+  "version": "1.0",
+  "description": "Automates button clicks for specified domains with a progress overlay.",
+  "permissions": ["activeTab"],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.bankofamerica.com/*",
+        "*://*.americanexpress.com/*",
+        "*://*.chase.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ]
+}
